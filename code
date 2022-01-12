@@ -1,0 +1,661 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+enum S{man,woman};
+enum P{colleague,classmate,friends,family};
+typedef struct Note note;
+typedef struct Head *listhead;
+struct Head
+{
+    int size;
+    note * first;
+};
+ struct Note
+{
+    char name[30];
+    enum S sex;
+    char company[30];
+    char pnum[30];
+    char phone[30];
+    char email[30];
+    enum P type;
+    note * next;
+
+
+};
+int loadtolist(listhead H);//读取文件到链表
+void newpeople(listhead H);//创建新联系人并加入链表
+int typein(note*ptr);//输入新联系人
+int storelist(listhead H);//保存链表内容
+void freethelist(listhead H);
+int judge(char*,char*);//判断是否是子字符串，是返回1，不是0
+void inquire(listhead H);//查询
+void shownote(note*ptr);//显示一个联系人
+void statistical(listhead H);//统计男女比例
+void modify(listhead H);//修改联系人
+void deleteone(listhead H);//删除联系人
+void showinorder(listhead H);//顺序显示
+void sortname(note*ptr[],int);
+void sorttype(note*ptr[],int);
+char menu(void);
+
+void showlist(listhead H);
+int main()
+{
+    listhead  listh;//表头
+    listh=malloc(sizeof(struct Head));
+    loadtolist(listh);
+    char choice;
+    printf("***************Welcome To Xu's Phone Book Management Program***************\n");
+     d: while((choice=menu())!='q')
+      {
+          switch(choice)
+          {
+              case 'a':showinorder(listh);break;
+              case 'b':newpeople(listh);break;
+              case 'c':modify(listh);break;
+              case 'd':deleteone(listh);break;
+              case 'e':inquire(listh);break;
+              case 'f':statistical(listh);break;
+              default: puts("error,enter again");
+          }
+      }
+      puts("Y/N?");
+      char nn[10];
+        fgets(nn,9,stdin);
+        if(nn[0]=='Y'||nn[0]=='y');
+        else goto d;
+      puts("Thanks for your use!");
+      puts("Press any key to exit");
+      getchar();
+    storelist(listh);
+    freethelist(listh);
+}
+
+int loadtolist(listhead H)
+{
+    FILE *fp;
+    fp=fopen("PHONEBOOK.TXT","r");
+    if(fp==0){fp=fopen("PHONEBOOK.TXT","w");}
+   if(fp==0){printf("fail to open file");getchar();exit(1);}
+    H->size=0;
+    if(getc(fp)==EOF)
+    {
+        H->first=NULL;
+        H->size=0;
+    }
+    else
+    {
+        rewind(fp);
+        H->first=malloc(sizeof(note));
+        H->size=1;
+        note* np=H->first;
+        while(1)
+        {
+            fgets(np->name,30,fp);
+            char sex[10];
+            fgets(sex,7,fp);
+            if(!strncmp(sex,"man",3))
+                np->sex=man;
+            else np->sex=woman;
+            fgets(np->company,30,fp);
+            fgets(np->pnum,30,fp);
+            fgets(np->phone,30,fp);
+            fgets(np->email,30,fp);
+            char type[30];
+            fgets(type,30,fp);
+             if(!strncmp(type,"classmate",5))np->type=classmate;
+             else if(!strncmp(type,"colleague",5))np->type=colleague;
+             else if(!strncmp(type,"friends",5))np->type=friends;
+             else if(!strncmp(type,"family",5))np->type=family;
+
+             if(getc(fp)==EOF)//当文件结尾多了一个换行符时不能正常运行，删除后能正常运行
+             {
+                 np->next=NULL;
+                 break;
+             }
+             else
+             {
+                 H->size++;
+                 np->next=malloc(sizeof(note));
+                 np=np->next;
+             }
+
+        }
+    }
+        fclose(fp);
+    return 0;
+}
+
+void newpeople(listhead H)
+{
+    note* ptr;
+    note* pre=NULL;
+    note * Pre;
+    ptr=malloc(sizeof(note));
+    //输入信息
+    typein(ptr);
+    Pre=(H->first);
+    pre=Pre;
+    H->first=ptr;
+    ptr->next=pre;
+    H->size++;
+    if(H->size==1)ptr->next=NULL;
+    printf("create new people success!\n");
+     puts("press any key to continue");
+    getchar();
+}
+
+int typein(note*ptr)
+{
+    printf("please enter new people's name in English\n");
+    fgets(ptr->name,30,stdin);
+    printf("enter his or her sex\n");
+    while(1)
+    {char sex[10];
+    fgets(sex,10,stdin);
+    if(!strncmp(sex,"man",3)){ptr->sex=man;break;}
+    else if(!strncmp(sex,"woman",5)) {ptr->sex=woman;break;}
+    else printf("enter the right sex!\n");
+    }
+    printf("and where he or she work?\n");
+    fgets(ptr->company,30,stdin);
+    printf("enter work phone number\n");
+    fgets(ptr->pnum,30,stdin);
+    printf("then the personal number\n");
+    fgets(ptr->phone,30,stdin);
+    printf("enter the e-mail\n");
+    fgets(ptr->email,30,stdin);
+    printf("Who is he or she to you?\n(please choose classmate colleague friends or family)\n");
+    while(1)
+    {
+        char type[30]={0};
+        fgets(type,30,stdin);
+             if(!strncmp(type,"classmate",5)){ptr->type=classmate;break;}
+             else if(!strncmp(type,"colleague",5)){ptr->type=colleague;break;}
+             else if(!strncmp(type,"friends",5)){ptr->type=friends;break;}
+             else if(!strncmp(type,"family",5)){ptr->type=family;break;}
+             else printf("please enter the right type!!\n");
+    }
+
+    return 0;
+
+
+}
+
+int storelist(listhead H)
+{
+    int ct=0;
+    FILE* fp;
+    fp=fopen("PHONEBOOK.TXT","w");
+    if(fp==0){printf("fail to open file");getchar();exit(1);}
+    note*ptr;
+    ptr=H->first;
+    while(ptr!=NULL)
+    {
+        fputs(ptr->name,fp);
+        switch(ptr->sex)
+        {
+            case man:fputs("man\n",fp);break;
+            case woman:fputs("woman\n",fp);break;
+        }
+        fputs(ptr->company,fp);
+        fputs(ptr->pnum,fp);
+        fputs(ptr->phone,fp);
+        fputs(ptr->email,fp);
+        switch(ptr->type)
+        {
+            case classmate:fputs("classmate\n",fp);break;
+            case colleague:fputs("colleague\n",fp);break;
+            case friends:fputs("friends\n",fp);break;
+            case family:fputs("family\n",fp);break;//记得处理文件结尾换行符的问题
+        }
+        ct++;
+        ptr=ptr->next;
+        if(ct!=H->size)
+        putc('\n',fp);
+
+    }
+    fclose(fp);
+    return 0;
+
+}
+
+void freethelist(listhead H)
+{
+    note* ptr;
+    ptr=H->first;
+    note*pro;
+
+    while(ptr!=NULL)
+    {
+       pro=ptr;
+       ptr=ptr->next;
+       free(pro);
+    }
+}
+int judge(char *dai,char *as)
+{
+    int ct=0,i;
+    int a=strlen(as)-1,b=strlen(dai);
+    for(i=0;i<b;i++)
+    {
+        if(dai[i]!=as[ct])ct=0;
+        else ct++;
+        if(ct==a)return 1;
+        if((i+1)==b)return 0;
+    }
+}
+void inquire(listhead H)
+{
+    printf("Enter the name or phone number of the person you want to query\n");
+    char typeword[25]={0};
+  bn:  fgets(typeword,25,stdin);
+    if(typeword[0]=='\n')
+    {
+        printf("don't enter empty\n");
+        goto bn;
+    }
+    note* ptr;
+    ptr=H->first;
+    int j1,j2,j3;
+    int ct=0;
+    while(ptr!=NULL)
+    {
+
+        j1=judge(ptr->name,typeword);
+        j2=judge(ptr->phone,typeword);
+        j3=judge(ptr->pnum,typeword);
+        if(j1||j2||j3)
+        {
+           shownote(ptr);
+            ct++;
+        }
+        ptr=ptr->next;
+    }
+    if(ct==0)printf("not found\n");
+     puts("press any key to continue");
+    getchar();
+}
+
+void shownote(note*ptr)
+{
+
+    printf("name:           ");
+    fputs(ptr->name,stdout);
+    printf("sex:            ");
+    switch(ptr->sex)
+    {
+        case man:printf("man\n");break;
+        case woman: printf("woman\n");break;
+    }
+    printf("company:        ");
+    fputs(ptr->company,stdout);
+    printf("office phone:   ");
+    fputs(ptr->pnum,stdout);
+    printf("phone number:   ");
+    fputs(ptr->phone,stdout);
+    printf("e-mail:         ");
+    fputs(ptr->email,stdout);
+    printf("tpye:           ");
+    switch(ptr->type)
+    {
+        case classmate:printf("classmate\n");break;
+        case colleague:printf("colleague\n");break;
+        case friends:printf("friends\n");break;
+        case family:printf("family\n");break;
+    }
+    printf("********************************************\n");
+    printf("\n");
+
+
+
+
+
+}
+
+void statistical(listhead H)
+{
+    int nan=0,nv=0;
+    note *ptr;
+    ptr=H->first;
+    while(ptr!=NULL)
+    {
+        if(ptr->sex==man)nan++;
+        else nv++;
+        ptr=ptr->next;
+    }
+    printf("man:  %d   woman:  %d\n",nan,nv);
+     puts("press any key to continue");
+    getchar();
+}
+void deleteone(listhead H)
+{
+    printf("Enter the name or phone number of the person you want to delete\n");
+    char who[30];
+    fgets(who,30,stdin);
+    note *ptr;
+    ptr=H->first;
+    note*pre;
+    pre=H->first;
+    int j1,j2,j3;
+    note* coay[31]={0};
+    note* shang[31]={0};
+    int xx=1;
+    while(ptr!=NULL)
+    {
+
+        j1=judge(ptr->name,who);
+        j2=judge(ptr->phone,who);
+        j3=judge(ptr->pnum,who);
+        if(j1||j2||j3)
+        {
+
+            shang[xx]=pre;
+            coay[xx]=ptr;
+            xx++;
+            if(xx==31)break;
+        }
+        pre=ptr;
+        ptr=ptr->next;
+    }
+    int ct=0;
+    for(int i=1;coay[i]!=0;i++)
+    {
+        printf("#%d:\n",i);
+        shownote(coay[i]);
+        ct++;
+    }
+    if(ct==0){printf("not found\n");getchar();}
+    else if(ct==1)
+    {
+       z: printf("Y/N?\n");
+        char nn[10];
+        fgets(nn,9,stdin);
+        if(nn[0]=='Y'||nn[0]=='y')
+        {
+            if(shang[1]==coay[1])//判断是否是首元素
+            {
+                note*k;
+                k=coay[1];
+                H->first=coay[1]->next;
+                free(k);
+                printf("delete success!\n");
+                 H->size--;
+                getchar();
+
+            }
+            else
+            {
+                note*n;
+                n=coay[1];
+                shang[1]->next=coay[1]->next;
+                free(n);
+                 printf("delete success!\n");
+                  H->size--;
+                 getchar();
+
+
+            }
+        }
+    }
+    else//有多个结果使时
+    {
+        printf("enter the number you want to delete\n");
+        int c=0;
+       x: while(scanf("%d",&c)==0)
+       {
+           while(getchar()!='\n');
+           printf("enter the right number!\n");
+       }
+       while(getchar()!='\n');
+        if(c<=0||c>ct)
+        {
+            printf("wrong number,enter again!\n");
+            goto x;
+        }
+
+        if(c==1)goto z;
+        else
+        {
+            printf("Y/N?\n");
+            char nn[10];
+        fgets(nn,9,stdin);
+            if(nn[0]=='Y'||nn[0]=='y')
+            {note *b;
+            b=coay[c];
+            shang[c]->next=coay[c]->next;
+            free(b);
+            printf("delete success!\n");
+             H->size--;
+              puts("press any key to continue");
+            getchar();}
+
+        }
+
+    }
+
+
+
+}
+
+void showlist(listhead H)
+{
+    note*ptr;
+    ptr=H->first;
+    while(ptr!=NULL)
+    {
+        shownote(ptr);
+        ptr=ptr->next;
+    }
+    getchar();
+}
+void modify(listhead H)
+{
+     printf("Enter the name or phone number of the person you want to modify\n");
+     char who[30];
+     int j1,j2,j3;
+     note* coay[31]={0};
+     fgets(who,30,stdin);
+      note *ptr;
+      ptr=H->first;
+      int xx=1;
+      while(ptr!=NULL)
+      {
+        j1=judge(ptr->name,who);
+        j2=judge(ptr->phone,who);
+        j3=judge(ptr->pnum,who);
+        if(j1||j2||j3)
+        {
+            coay[xx]=ptr;
+            xx++;
+            if(xx==31)break;
+
+        }
+        ptr=ptr->next;
+      }
+      int ctt=0;
+    for(int i=1;coay[i]!=0;i++)
+    {
+        printf("#%d:\n",i);
+        shownote(coay[i]);
+        ctt++;
+    }
+    if(ctt==0)printf("not found\n");
+     else if(ctt==1)
+     {
+        f: printf("new name:"); fgets(coay[1]->name,30,stdin);
+         printf("new sex:");
+         while(1)
+    {char sex[10];
+    fgets(sex,10,stdin);
+    if(!strncmp(sex,"man",3)){coay[1]->sex=man;break;}
+    else if(!strncmp(sex,"woman",5)) {coay[1]->sex=woman;break;}
+    else printf("enter the right sex!\n");
+    }
+    printf("new company:");fgets(coay[1]->company,30,stdin);
+    printf("new work phone number:");fgets(coay[1]->pnum,30,stdin);
+    printf("new personal number:");fgets(coay[1]->phone,30,stdin);
+    printf("new e-mail:");fgets(coay[1]->email,30,stdin);
+    printf("new type:");
+         while(1)
+    {
+        char type[30]={0};
+        fgets(type,30,stdin);
+             if(!strncmp(type,"classmate",5)){coay[1]->type=classmate;break;}
+             else if(!strncmp(type,"colleague",5)){coay[1]->type=colleague;break;}
+             else if(!strncmp(type,"friends",5)){coay[1]->type=friends;break;}
+             else if(!strncmp(type,"family",5)){coay[1]->type=family;break;}
+             else printf("please enter the right type!!\n");
+    }
+    printf("modify success!\n");
+    getchar();
+     }
+     else
+     {
+         printf("enter the number you want to modify\n");
+        int c=0;
+       a: while(scanf("%d",&c)==0)
+       {
+           while(getchar()!='\n');
+           printf("enter the right number!\n");
+       }
+       while(getchar()!='\n');
+        if(c<=0||c>ctt)
+        {
+            printf("wrong number,enter again!\n");
+            goto a;
+        }
+        if(c==1)goto f;
+        else
+        {
+            printf("new name:"); fgets(coay[c]->name,30,stdin);
+         printf("new sex:");
+         while(1)
+    {char sex[10];
+    fgets(sex,10,stdin);
+    if(!strncmp(sex,"man",3)){coay[c]->sex=man;break;}
+    else if(!strncmp(sex,"woman",5)) {coay[c]->sex=woman;break;}
+    else printf("enter the right sex!\n");
+    }
+    printf("new company:");fgets(coay[c]->company,30,stdin);
+    printf("new work phone number:");fgets(coay[c]->pnum,30,stdin);
+    printf("new personal number:");fgets(coay[c]->phone,30,stdin);
+    printf("new e-mail:");fgets(coay[c]->email,30,stdin);
+    printf("new type:");
+         while(1)
+    {
+        char type[30]={0};
+        fgets(type,30,stdin);
+             if(!strncmp(type,"classmate",5)){coay[c]->type=classmate;break;}
+             else if(!strncmp(type,"colleague",5)){coay[c]->type=colleague;break;}
+             else if(!strncmp(type,"friends",5)){coay[c]->type=friends;break;}
+             else if(!strncmp(type,"family",5)){coay[c]->type=family;break;}
+             else printf("please enter the right type!!\n");
+    }
+    printf("modify success!\n");
+     puts("press any key to continue");
+    getchar();
+        }
+
+
+     }
+
+}
+
+void showinorder(listhead H)
+{
+    note*ptrar[H->size];
+    note*ptr;
+    ptr=H->first;
+    if(ptr!=NULL)
+    {for(int i=0;ptr!=NULL;i++)
+    {
+        ptrar[i]=ptr;
+        ptr=ptr->next;
+    }
+    printf("show people in name's order enter 1, in type's order enter 0\n");
+    int c;
+    s: while(scanf("%d",&c)==0)
+       {
+           while(getchar()!='\n');
+           printf("enter the right number!\n");
+       }
+       while(getchar()!='\n');
+        if(c!=0&&c!=1)
+        {
+            printf("wrong number,enter again!\n");
+            goto s;
+        }
+    if(c)sortname(ptrar,H->size);
+    else sorttype(ptrar,H->size);
+    for(int i=0;i<H->size;i++)
+    {
+        shownote(ptrar[i]);
+    }
+    puts("press any key to continue");
+    getchar();
+    }
+    else
+    {
+        puts("phonebook is empty!");
+        puts("press any key to continue");
+        getchar();
+
+    }
+
+
+}
+
+void sortname(note* ptrar[],int n)
+{
+    int j,p;
+    note* tmp;
+    for(p=1;p<n;p++)
+    {
+        tmp=ptrar[p];
+        for(j=p;j>0&& (strcmp(ptrar[j-1]->name,tmp->name)>0);j--)
+            ptrar[j]=ptrar[j-1];
+        ptrar[j]=tmp;
+    }
+
+}
+
+
+void sorttype(note* ptrar[],int n)
+{
+    int j,p;
+    note* tmp;
+    for(p=1;p<n;p++)
+    {
+        tmp=ptrar[p];
+        for(j=p;j>0&& ((ptrar[j-1]->type)>(tmp->type));j--)
+            ptrar[j]=ptrar[j-1];
+        ptrar[j]=tmp;
+    }
+
+}
+
+
+char menu(void)
+{
+    char ch;
+    puts("enter the leter corresponding to your choice:");
+    puts("a) show all the person in phonebook        b) create a new person into the phonebook");
+    puts("c) modify a person                         d) delete a person");
+    puts("e) query a person                          f)  show the number of males and females ");
+    puts("q) quit");
+    while(1)
+    {
+        ch=getchar();
+        while(getchar()!='\n');
+        if(ch=='a'||ch=='b'||ch=='c'||ch=='d'||ch=='e'||ch=='f'||ch=='q')break;
+        else puts("enter the correct letter!!");
+    }
+    return ch;
+}
+
+
+
+
+
